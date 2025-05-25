@@ -1,12 +1,12 @@
 <?php
 
-namespace VendorName\Skeleton\Commands;
+namespace Itstudioat\Vuedata\Commands;
 
 use Illuminate\Console\Command;
 
-class SkeletonCommand extends Command
+class VuedataCommand extends Command
 {
-    public $signature = 'skeleton';
+    public $signature = 'vuedata';
 
     public $description = 'My command';
 
