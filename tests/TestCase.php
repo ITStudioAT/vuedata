@@ -12,8 +12,11 @@ class TestCase extends Orchestra
     {
         parent::setUp();
 
+        // Erzeugen der App.vue Datei für die Tests
+        copy(__DIR__ . '/vue/App_Original.vue', __DIR__ . '/vue/App.vue');
+
         Factory::guessFactoryNamesUsing(
-            fn (string $modelName) => 'Itstudioat\\Vuedata\\Database\\Factories\\'.class_basename($modelName).'Factory'
+            fn(string $modelName) => 'Itstudioat\\Vuedata\\Database\\Factories\\' . class_basename($modelName) . 'Factory'
         );
     }
 
