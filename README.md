@@ -4,7 +4,7 @@
 [![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/itstudioat/vuedata/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/itstudioat/vuedata/actions?query=workflow%3Arun-tests+branch%3Amain)
 [![Total Downloads](https://img.shields.io/packagist/dt/itstudioat/vuedata.svg?style=flat-square)](https://packagist.org/packages/itstudioat/vuedata)
 
-With this package yoy may read and update the variables of a vue-file.
+With this package you may read and update the variables of a vue-file.
 
 For example you have follwing block in an Vue-File
 
