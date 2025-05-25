@@ -10,7 +10,7 @@ class VuedataService
 
     public function read($source)
     {
-        $path = resource_path($source);
+        $path = $source;
 
         if (!file_exists($path)) {
             return response(VuedataResult::FILE_NOT_EXISTS->value);
