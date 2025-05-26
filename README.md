@@ -71,6 +71,7 @@ $answer = $vuedataService->write('vendor/hpm/js/pages/pv_homepage/App.vue', $dat
 return $answer;
 ```
 
+Programmed with support from chatgpt.
 
 ## Changelog
 
