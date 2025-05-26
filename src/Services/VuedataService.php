@@ -10,6 +10,7 @@ class VuedataService
 
     public function read($source)
     {
+
         $path = $source;
 
         if (!file_exists($path)) {
@@ -25,7 +26,11 @@ class VuedataService
 
         $rawObject = trim($matches[1]);
 
+        // Remove JS-style comments
+        $rawObject = preg_replace('!/\*.*?\*/!s', '', $rawObject); // remove /* */ comments
+        $rawObject = preg_replace('/\/\/.*$/m', '', $rawObject);   // remove // comments
 
+        info($rawObject);
 
         // Convert to JSON-compatible format
         $converted = preg_replace_callback(
@@ -57,6 +62,8 @@ class VuedataService
 
     public function write($source, $data)
     {
+
+        $commentMap = [];
         $path = $source;
 
         if (!file_exists($path)) {
@@ -65,20 +72,36 @@ class VuedataService
 
         $content = file_get_contents($path);
 
-        // extrahiere Inhalt des return-Objekts innerhalb data()
+        // Extract the data() return block
         if (!preg_match('/data\s*\(\)\s*{\s*return\s*({.*?})\s*;\s*}/s', $content, $matches)) {
             return response(VuedataResult::NOT_DATA_BLOCK->value);
         }
 
-        $oldJs = $matches[1];
+        $oldJs = trim($matches[1]);
 
-        // konvertiere den JS-Objekttext in JSON-ähnlich
-        $jsToJson = preg_replace('/(\b\w+\b)\s*:/', '"$1":', $oldJs); // keys
-        $jsToJson = preg_replace("/'([^']*?)'/", '"$1"', $jsToJson); // strings
-        $jsToJson = preg_replace('/,\s*([\]}])/m', '$1', $jsToJson); // trailing commas
-        $jsToJson = preg_replace('/,\s*$/', '', $jsToJson);
+        info(2);
+
+        // 🧹 Extract and store comments as placeholders
+        $oldJsCleaned = $this->extractComments($oldJs, $commentMap);
+
+        info(3);
+
+
+        // Convert to JSON-like for decoding
+        $jsToJson = preg_replace('/(\b\w+\b)\s*:/', '"$1":', $oldJsCleaned); // keys
+        $jsToJson = preg_replace("/'([^']*?)'/", '"$1"', $jsToJson);         // strings
+        $jsToJson = preg_replace('/,\s*([\]}])/m', '$1', $jsToJson);         // trailing commas
+        $jsToJson = preg_replace('/,\s*$/', '', $jsToJson);                  // final comma
+
+        info(4);
+        info('JSON ATTEMPT:', ['json' => $jsToJson]);
 
         $oldData = json_decode($jsToJson, true);
+
+        info(5);
+
+        info($oldData);
+
         if (json_last_error() !== JSON_ERROR_NONE) {
             return response()->json([
                 'status' => VuedataResult::PARSE_ERROR->value,
@@ -87,29 +110,74 @@ class VuedataService
             ], 400);
         }
 
-        // nur Keys aus $data ersetzen
+        info(6);
+
+        // Replace keys in data
         foreach ($data as $key => $value) {
             $oldData[$key] = $value;
         }
 
-        // konvertiere zurück zu JS-kompatiblem Objekttext
+        // Convert PHP array back to JS object syntax
         $newJsObject = $this->phpArrayToJsObject($oldData);
 
-        // ersetze den alten data()-Block
+        // 🔁 Reinsert preserved comments
+        $finalJsObjectWithComments = $this->reinsertComments($newJsObject, $commentMap);
+
+        // Replace the old data() block
         $newContent = preg_replace_callback(
             '/data\s*\(\)\s*{\s*return\s*{.*?}\s*;\s*}/s',
-            function () use ($newJsObject) {
-                return "data() {\n    return " . $newJsObject . ";\n}";
+            function () use ($finalJsObjectWithComments) {
+                return "data() {\n    return " . $finalJsObjectWithComments . ";\n}";
             },
             $content
         );
 
-        // 🔁 Datei aktualisieren
+        info($newContent);
+
+        // Write back the modified file
         file_put_contents($path, $newContent);
 
-        // ✅ Rückmeldung
         return response()->json(['status' => 'ok']);
     }
+
+    protected function extractComments(string $js, array &$commentMap): string
+    {
+        $commentMap = [];
+        $index = 0;
+
+        // Regex für // Kommentare
+        $js = preg_replace_callback('/\/\/(.*?)\n/', function ($matches) use (&$commentMap, &$index) {
+            $key = "__COMMENT_BLOCK_{$index}__";
+            $commentMap[$key] = '// ' . trim($matches[1]);
+            $index++;
+            return "\"$key\": \"__COMMENT__\",\n";
+        }, $js);
+
+        // Regex für /* */ Kommentare
+        $js = preg_replace_callback('/\/\*.*?\*\//s', function ($matches) use (&$commentMap, &$index) {
+            $key = "__COMMENT_BLOCK_{$index}__";
+            $commentMap[$key] = trim($matches[0]);
+            $index++;
+            return "\"$key\": \"__COMMENT__\",\n";
+        }, $js);
+
+        return $js;
+    }
+
+
+
+    protected function reinsertComments(string $js, array $commentMap): string
+    {
+        foreach ($commentMap as $key => $originalComment) {
+            // Entferne umgebende JSON-Syntax
+            $pattern = '/"' . preg_quote($key, '/') . '":\s*"__COMMENT__",?\n?/';
+
+            $js = preg_replace($pattern, $originalComment . "\n", $js);
+        }
+
+        return $js;
+    }
+
 
 
     public function phpArrayToJsObject($data)

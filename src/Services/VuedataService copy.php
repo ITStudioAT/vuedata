@@ -25,9 +25,7 @@ class VuedataService
 
         $rawObject = trim($matches[1]);
 
-        // Remove JS-style comments
-        $rawObject = preg_replace('!/\*.*?\*/!s', '', $rawObject); // remove /* */ comments
-        $rawObject = preg_replace('/\/\/.*$/m', '', $rawObject);   // remove // comments
+    
 
         // Convert to JSON-compatible format
         $converted = preg_replace_callback(
