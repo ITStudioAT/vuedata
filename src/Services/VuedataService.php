@@ -30,8 +30,6 @@ class VuedataService
         $rawObject = preg_replace('!/\*.*?\*/!s', '', $rawObject); // remove /* */ comments
         $rawObject = preg_replace('/\/\/.*$/m', '', $rawObject);   // remove // comments
 
-        info($rawObject);
-
         // Convert to JSON-compatible format
         $converted = preg_replace_callback(
             "/'([^']*?)'/",
@@ -79,12 +77,8 @@ class VuedataService
 
         $oldJs = trim($matches[1]);
 
-        info(2);
-
         // 🧹 Extract and store comments as placeholders
         $oldJsCleaned = $this->extractComments($oldJs, $commentMap);
-
-        info(3);
 
 
         // Convert to JSON-like for decoding
@@ -93,14 +87,8 @@ class VuedataService
         $jsToJson = preg_replace('/,\s*([\]}])/m', '$1', $jsToJson);         // trailing commas
         $jsToJson = preg_replace('/,\s*$/', '', $jsToJson);                  // final comma
 
-        info(4);
-        info('JSON ATTEMPT:', ['json' => $jsToJson]);
 
         $oldData = json_decode($jsToJson, true);
-
-        info(5);
-
-        info($oldData);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
             return response()->json([
@@ -110,7 +98,6 @@ class VuedataService
             ], 400);
         }
 
-        info(6);
 
         // Replace keys in data
         foreach ($data as $key => $value) {
@@ -132,7 +119,6 @@ class VuedataService
             $content
         );
 
-        info($newContent);
 
         // Write back the modified file
         file_put_contents($path, $newContent);
