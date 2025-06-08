@@ -187,14 +187,20 @@ class VuedataService
         $path = $source;
 
         if (!file_exists($path)) {
-            return response(VuedataResult::FILE_NOT_EXISTS->value);
+            return [
+                'status' => 'error',
+                'error' => VuedataResult::FILE_NOT_EXISTS->value,
+            ];
         }
 
         $content = file_get_contents($path);
 
         // Extract the data() return block
         if (!preg_match('/data\s*\(\)\s*{\s*return\s*({.*?})\s*;\s*}/s', $content, $matches)) {
-            return response(VuedataResult::NOT_DATA_BLOCK->value);
+            return [
+                'status' => 'error',
+                'error' => VuedataResult::NOT_DATA_BLOCK->value,
+            ];
         }
 
         $oldJs = trim($matches[1]);
@@ -211,11 +217,12 @@ class VuedataService
         $oldData = json_decode($jsToJson, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
-            return response()->json([
-                'status' => VuedataResult::PARSE_ERROR->value,
+            return [
+                'status' => 'error',
+                'error' => VuedataResult::PARSE_ERROR->value,
                 'message' => json_last_error_msg(),
                 'json_attempt' => $jsToJson,
-            ], 400);
+            ];
         }
 
         // Replace keys in data
@@ -246,6 +253,7 @@ class VuedataService
             'written_keys' => array_keys($data),
         ];
     }
+
 
 
 
