@@ -8,7 +8,61 @@ use Itstudioat\Vuedata\Enums\VuedataResult;
 class VuedataService
 {
 
+
     public function read($source)
+    {
+        if (!file_exists($source)) {
+            return [
+                'success' => false,
+                'error' => VuedataResult::FILE_NOT_EXISTS->value,
+            ];
+        }
+
+        $content = file_get_contents($source);
+
+        if (!preg_match('/data\s*\(\)\s*{.*?return\s*{(.*?)};\s*}/s', $content, $matches)) {
+            return [
+                'success' => false,
+                'error' => VuedataResult::NOT_DATA_BLOCK->value,
+            ];
+        }
+
+        $rawObject = trim($matches[1]);
+
+        // JS-Style Kommentare entfernen
+        $rawObject = preg_replace('!/\*.*?\*/!s', '', $rawObject);
+        $rawObject = preg_replace('/\/\/.*$/m', '', $rawObject);
+
+        // Keys & Strings in JSON-Format umwandeln
+        $converted = preg_replace_callback(
+            "/'([^']*?)'/",
+            fn($m) => '"' . addslashes($m[1]) . '"',
+            $rawObject
+        );
+        $converted = preg_replace('/(\b\w+)\s*:/', '"$1":', $converted);
+        $converted = preg_replace('/,\s*([\]}])/m', '$1', $converted);
+        $converted = preg_replace('/,\s*$/', '', $converted);
+
+        $json = '{' . $converted . '}';
+        $parsed = json_decode($json, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return [
+                'success' => false,
+                'error' => VuedataResult::PARSE_ERROR->value,
+                'message' => json_last_error_msg(),
+                'json_attempt' => $json,
+            ];
+        }
+
+        return [
+            'success' => true,
+            'data' => $parsed,
+        ];
+    }
+
+
+    public function read90($source)
     {
 
         $path = $source;
