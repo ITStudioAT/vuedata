@@ -112,7 +112,7 @@ class VuedataService
         return $parsed;
     }
 
-    public function write($source, $data)
+    public function write90($source, $data)
     {
 
         $commentMap = [];
@@ -179,6 +179,76 @@ class VuedataService
 
         return response()->json(['status' => 'ok']);
     }
+
+
+    public function write($source, $data)
+    {
+        $commentMap = [];
+        $path = $source;
+
+        if (!file_exists($path)) {
+            return response(VuedataResult::FILE_NOT_EXISTS->value);
+        }
+
+        $content = file_get_contents($path);
+
+        // Extract the data() return block
+        if (!preg_match('/data\s*\(\)\s*{\s*return\s*({.*?})\s*;\s*}/s', $content, $matches)) {
+            return response(VuedataResult::NOT_DATA_BLOCK->value);
+        }
+
+        $oldJs = trim($matches[1]);
+
+        // 🧹 Extract and store comments as placeholders
+        $oldJsCleaned = $this->extractComments($oldJs, $commentMap);
+
+        // Convert to JSON-like for decoding
+        $jsToJson = preg_replace('/(\b\w+\b)\s*:/', '"$1":', $oldJsCleaned); // keys
+        $jsToJson = preg_replace("/'([^']*?)'/", '"$1"', $jsToJson);         // strings
+        $jsToJson = preg_replace('/,\s*([\]}])/m', '$1', $jsToJson);         // trailing commas
+        $jsToJson = preg_replace('/,\s*$/', '', $jsToJson);                  // final comma
+
+        $oldData = json_decode($jsToJson, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return response()->json([
+                'status' => VuedataResult::PARSE_ERROR->value,
+                'message' => json_last_error_msg(),
+                'json_attempt' => $jsToJson,
+            ], 400);
+        }
+
+        // Replace keys in data
+        foreach ($data as $key => $value) {
+            $oldData[$key] = $value;
+        }
+
+        // Convert PHP array back to JS object syntax
+        $newJsObject = $this->phpArrayToJsObject($oldData);
+
+        // 🔁 Reinsert preserved comments
+        $finalJsObjectWithComments = $this->reinsertComments($newJsObject, $commentMap);
+
+        // Replace the old data() block
+        $newContent = preg_replace_callback(
+            '/data\s*\(\)\s*{\s*return\s*{.*?}\s*;\s*}/s',
+            function () use ($finalJsObjectWithComments) {
+                return "data() {\n    return " . $finalJsObjectWithComments . ";\n}";
+            },
+            $content
+        );
+
+        // Write back the modified file
+        file_put_contents($path, $newContent);
+
+        return [
+            'status' => 'success',
+            'written_keys' => array_keys($data),
+        ];
+    }
+
+
+
 
     protected function extractComments(string $js, array &$commentMap): string
     {

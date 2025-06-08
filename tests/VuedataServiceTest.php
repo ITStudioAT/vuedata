@@ -15,24 +15,28 @@ it('can read a vue-file', function () {
     $result = $vuedataService->read($path);
 
     expect($result)->toBeArray();
-    expect($result['hpm']['name'])->toBe("Homepage-Struktur");
-    expect($result['hpm']['elements']['header']['is_active']['value'])->toBeTrue();
-    expect($result['hpm']['elements']['footer']['is_active']['value'])->toBeTrue();
+    expect($result['data']['hpm']['name'])->toBe("Homepage-Struktur");
+    expect($result['data']['hpm']['elements']['header']['is_active']['value'])->toBeTrue();
+    expect($result['data']['hpm']['elements']['footer']['is_active']['value'])->toBeTrue();
 });
 
 it('can not read a vue-file, wrong file-name', function () {
     $path = __DIR__ . "/vue/Appx.vue";
     $vuedataService = new VuedataService();
-    $response = $vuedataService->read($path);
-    expect($response->getContent())->toBe(VuedataResult::FILE_NOT_EXISTS->value);
+    $result = $vuedataService->read($path);
+    expect($result)->toBeArray();
+    expect($result['success'])->toBe(false);
+    expect($result['error'])->toBe(VuedataResult::FILE_NOT_EXISTS->value);
 });
 
 
 it('can not read a vue-file, no data-block', function () {
     $path = __DIR__ . "/vue/AppNoDataBlock.vue";
     $vuedataService = new VuedataService();
-    $response = $vuedataService->read($path);
-    expect($response->getContent())->toBe(VuedataResult::NOT_DATA_BLOCK->value);
+    $result = $vuedataService->read($path);
+    expect($result)->toBeArray();
+    expect($result['success'])->toBe(false);
+    expect($result['error'])->toBe(VuedataResult::NOT_DATA_BLOCK->value);
 });
 
 
@@ -41,20 +45,19 @@ it('can write a vue-file', function () {
     $vuedataService = new VuedataService();
     $result = $vuedataService->read($path);
 
-    $result['hpm']['name'] = "Homepage-Struktur changed";
-    $result['hpm']['elements']['header']['is_active']['value'] = false;
-    $result['hpm']['elements']['footer']['is_active']['value'] = false;
+    $result['data']['hpm']['name'] = "Homepage-Struktur changed";
+    $result['data']['hpm']['elements']['header']['is_active']['value'] = false;
+    $result['data']['hpm']['elements']['footer']['is_active']['value'] = false;
 
-    $response =  $vuedataService->write($path, ['hpm' => $result['hpm']]);
+    $result =  $vuedataService->write($path, ['hpm' => $result['data']['hpm']]);
 
-    expect($response->status())->toBe(200);
-    expect($response->getData(true))->toBe([
-        'status' => 'ok',
-    ]);
+    expect($result)->toBeArray();
+    expect($result['status'])->toBe('success');
+
 
     $result = $vuedataService->read($path);
     expect($result)->toBeArray();
-    expect($result['hpm']['name'])->toBe("Homepage-Struktur changed");
-    expect($result['hpm']['elements']['header']['is_active']['value'])->toBeFalse();
-    expect($result['hpm']['elements']['footer']['is_active']['value'])->toBeFalse();
+    expect($result['data']['hpm']['name'])->toBe("Homepage-Struktur changed");
+    expect($result['data']['hpm']['elements']['header']['is_active']['value'])->toBeFalse();
+    expect($result['data']['hpm']['elements']['footer']['is_active']['value'])->toBeFalse();
 });
