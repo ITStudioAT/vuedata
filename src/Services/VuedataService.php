@@ -15,6 +15,7 @@ class VuedataService
             return [
                 'success' => false,
                 'error' => VuedataResult::FILE_NOT_EXISTS->value,
+                'source' => $source
             ];
         }
 
@@ -24,6 +25,7 @@ class VuedataService
             return [
                 'success' => false,
                 'error' => VuedataResult::NOT_DATA_BLOCK->value,
+                'source' => $source
             ];
         }
 
@@ -52,6 +54,7 @@ class VuedataService
                 'error' => VuedataResult::PARSE_ERROR->value,
                 'message' => json_last_error_msg(),
                 'json_attempt' => $json,
+                'source' => $source
             ];
         }
 
@@ -190,6 +193,7 @@ class VuedataService
             return [
                 'status' => 'error',
                 'error' => VuedataResult::FILE_NOT_EXISTS->value,
+                'source' => $source
             ];
         }
 
@@ -200,6 +204,7 @@ class VuedataService
             return [
                 'status' => 'error',
                 'error' => VuedataResult::NOT_DATA_BLOCK->value,
+                'source' => $source
             ];
         }
 
@@ -222,6 +227,7 @@ class VuedataService
                 'error' => VuedataResult::PARSE_ERROR->value,
                 'message' => json_last_error_msg(),
                 'json_attempt' => $jsToJson,
+                'source' => $source
             ];
         }
 
